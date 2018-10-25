@@ -53,21 +53,21 @@ fs.readFile('./preuldePiano.xml', 'utf8', function (err, res) {
         testJson.timeSignature = `${measure.attributes.time.beats}/${measure.attributes.time['beat-type']}`
         // console.log(measure.note[0])
         let end = 0;
-        measure.note.forEach(function(note, i){
-          if (note.staff === '1') {
-            notes.push({note: `${note.pitch.step}${note.pitch.octave}`, duration: note.type})
-          }
-        })
       }
+      measure.note.forEach(function(note, i){
+        if (note.staff === '1' && note.pitch) {
+          notes.push({note: `${note.pitch.step}${note.pitch.octave}`, duration: note.type})
+        }
+      })
       
     })
-    console.log(notes)
+    // console.log(notes)
     c = scribble.clip({
       notes: notes.map(note => note.note.toLowerCase()).join(' '),
       pattern: notes.map(note => DURATIONS[note.duration]).join('')
     })
 
-    scribble.midi(c, 'bach.mid');
+    scribble.midi(c, 'bachFull.mid');
     // json["score-partwise"].part.measure.forEach(function(measure){
     //   console.log(measure.note[0])
     //   console.log(measure.note[1])

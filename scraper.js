@@ -9,38 +9,38 @@ const Path = require('path');
 let scoreIds = [];
 let counter = 1;
 // getIds('')
-downloadFromIds();
-// function getIds(page) {
-//   axios.get(`https://musescore.com/sheetmusic/artists/bach${page}`)
-//   .then(res => {
-//     let $ = cheerio.load(res.data);
-//     $('.score-overlay').each(function(i, el){
-//       // console.log(el.attribs['data-score-id'])
-//       scoreIds.push(el.attribs['data-score-id'])
-//     })
-//     counter++;
-//     if (counter < 1) {
-//       console.log('getting page ', counter)
-//       getIds(`?page=${counter}`)
-//     } else {
-//       console.log('done without error')
-//       downloadFromIds()
-//       .then(res => console.log('file downloaded'))
-//       .catch(err => console.log('ERROR donwloading file: ', err))
-//     }
-//   })
-//   .catch(err => {
-//     console.log('done')
-//     // downloadFromIds()
-//   })
-// }
+scrapeIds();
+function scrapeIds(page) {
+  axios.get(`https://musescore.com/sheetmusic/artists/bach${page}`)
+  .then(res => {
+    let $ = cheerio.load(res.data);
+    $('.score-overlay').each(function(i, el){
+      // console.log(el.attribs['data-score-id'])
+      scoreIds.push(el.attribs['data-score-id'])
+    })
+    counter++;
+    if (counter < 100) {
+      console.log('getting page ', counter)
+      getIds(`?page=${counter}`)
+    } else {
+      console.log('done without error')
+      downloadFromIds()
+      .then(res => console.log('file downloaded'))
+      .catch(err => console.log('ERROR donwloading file: ', err))
+    }
+  })
+  .catch(err => {
+    console.log('done')
+    // downloadFromIds()
+  })
+}
 
 downloadIndex = 0;
 
 async function downloadFromIds(){
   let unique = scoreIds.filter((v, i, a) => a.indexOf(v) === i); 
   // let url = `https://musescore.com/score/${unique[downloadIndex]}/download/mxl`;
-  let path = Path.resolve(__dirname, 'scores', 'test.zip')
+  let path = Path.resolve(__dirname, 'scores', `${id}.zip`)
   // console.log(typeof url)
   // console.log("URL: ", url)
   let response;

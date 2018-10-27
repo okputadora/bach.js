@@ -2,26 +2,38 @@
 
 //@TODO GRAB RELATED ENTRIES
 
-const Axios = require('axios');
+const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const Path = require('path');
 let scoreIds = [];
 let counter = 1;
+let scores = []
 // getIds('')
-scrapeIds();
+scrapeIds('');
 function scrapeIds(page) {
-  axios.get(`https://musescore.com/sheetmusic/artists/bach${page}`)
+  let url = `https://musescore.com/sheetmusic/artists/bach${page}`
+  console.log(url)
+  axios.get(url)
   .then(res => {
     let $ = cheerio.load(res.data);
-    $('.score-overlay').each(function(i, el){
-      // console.log(el.attribs['data-score-id'])
-      scoreIds.push(el.attribs['data-score-id'])
+    $(".node--type-score").each(function(i, el){
+      el.children.forEach(function(child){
+        // console.log(child)
+        // console.log(child.attribs)
+        if (child.name === 'h2') {
+          title = child.children[1].children[0].data.trim()
+          idArr = child.children[1].attribs.href.split("/")
+          id = idArr[idArr.length - 1]
+          console.log(id, title)
+          scores.push({title, id,})
+        }
+      })
     })
     counter++;
     if (counter < 100) {
       console.log('getting page ', counter)
-      getIds(`?page=${counter}`)
+      scrapeIds(`?page=${counter}`)
     } else {
       console.log('done without error')
       downloadFromIds()
@@ -30,7 +42,7 @@ function scrapeIds(page) {
     }
   })
   .catch(err => {
-    console.log('done')
+    console.log('error')
     // downloadFromIds()
   })
 }
@@ -40,12 +52,12 @@ downloadIndex = 0;
 async function downloadFromIds(){
   let unique = scoreIds.filter((v, i, a) => a.indexOf(v) === i); 
   // let url = `https://musescore.com/score/${unique[downloadIndex]}/download/mxl`;
-  let path = Path.resolve(__dirname, 'scores', `${id}.zip`)
+  // let path = Path.resolve(__dirname, 'scores', `${id}.zip`)
   // console.log(typeof url)
   // console.log("URL: ", url)
   let response;
   try {
-    response = await Axios({
+    response = await axios({
       method: 'GET',
       url: 'https://s3.musescore.com/static.musescore.com/267781/8a5c647f39/score.mxl?revision=1516891420',
       responseType: 'stream',
@@ -57,12 +69,12 @@ async function downloadFromIds(){
         "referer": "https://musescore.com/hmscomp/scores/267781"
       }
     })
-    console.log(response.data)
-    response.data.pipe(fs.createWriteStream(path))
-    return new Promise((resolve, reject) => {
-      response.data.on('end', () => resolve())
-      response.data.on('error', (err) => reject(err))
-    })
+    // console.log(response.data)
+    // response.data.pipe(fs.createWriteStream(path))
+    // return new Promise((resolve, reject) => {
+    //   response.data.on('end', () => resolve())
+    //   response.data.on('error', (err) => reject(err))
+    // })
   }
   catch(err) {
     console.log("ERROR: ", err)

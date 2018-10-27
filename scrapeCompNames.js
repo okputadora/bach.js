@@ -1,18 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const mongoose = require('mongoose');
-
-const composition = new mongoose.Schema({
-  composer: {type: String},
-  opusNo: {type: String},
-  title: {type: String},
-  date: {type: String},
-  genre: {type: String},
-  key: {type: String},
-  additionalNotes: {type: String},
-})
-
-const Composition = mongoose.model('Composition', composition)
+const Composition = require('./models/Composition');
 
 mongoose.connect('mongodb://localhost/classicalMusic', (err, res) => {
   if (err){console.log('DB CONNECTION FAILED: '+err)}

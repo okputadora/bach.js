@@ -1,6 +1,6 @@
 const music = require('musicjson');
-const scribble = require('scribbletune')
 const fs = require('fs');
+const distance = require('tonal-distance');
 const KEYS = {
   '1': {major: 'G', minor: 'E'},
   '2': {major: 'D', minor: 'B'},
@@ -19,7 +19,7 @@ const KEYS = {
 const DURATIONS = {
   '16th': 'x',
   'eighth': "x-",
-  'quarteer': 'x---',
+  'quarter': 'x---',
   'half': 'x-------',
   'whole': 'x---------------',
 }
@@ -58,49 +58,57 @@ function getPath(directory, srcPaths, index, paths) {
 }
 
 function batchParse(files) {
-  console.log(files[0])
+  // console.log(files[0])
   fs.readFile(files[0], 'utf8', function (err, res) {
     // console.log(res)
     music.musicJSON(res, function (err, json) {
       // Do something with the MusicJSON data
       if (err) console.log(err)
-      console.log(json['score-partwise']['part'][0]['measure'][0].note)
-      let testJson = {
+      // console.log(json['score-partwise']['part'][0]['measure'][0].note)
+      let musicJson = {
         key: '',
         timeSignature: '',
-        measures: [
-          // note: {
-          //   note:
-          //   duration: 
-          // }
-        ]
+        notes: [],
       
       }
-      let notes = []
       // console.log(JSON.stringify(json, null, 2))
-      json['score-partwise']['part'][0]['measure'].forEach(function(measure){
+      json['score-partwise']['part'][0]['measure'].forEach(function(measure, i){
         // console.log(measure['$'].number)
         if (measure['$'].number === '1') {
-          testJson.key = KEYS[measure.attributes.key.fifths].major
+          musicJson.key = KEYS[measure.attributes.key.fifths].major
           // console.log(measure)
-          testJson.timeSignature = `${measure.attributes.time.beats}/${measure.attributes.time['beat-type']}`
+          musicJson.timeSignature = `${measure.attributes.time.beats}/${measure.attributes.time['beat-type']}`
           // console.log(measure.note[0])
           let end = 0;
         }
         // console.log("TEST JSON: ", testJson)
         // console.log(measure)
         if (measure.note.length > 0) {
-          measure.note.forEach(function(note, i){
-            console.log("NOTE", note)
+          measure.note.forEach(function(note, x){
+            // console.log("NOTE", note)
             if (note.pitch) {
-              notes.push({note: `${note.pitch.step}${note.pitch.octave}`, duration: note.type})
+              let noteName = `${note.pitch.step}${note.pitch.octave}`
+              musicJson.notes.push({
+                noteName: noteName, 
+                duration: note.type,
+              })
             }
           })
         }
       })
-      console.log(notes)
+      // console.log(notes)
+      analyze(musicJson)
     })
   })
+}
+
+function analyze(musicJson){
+  musicJson.notes.forEach((note, i, arr) => {
+    // console.log(i)
+    note.relativeNote = distance.interval(musicJson.key, note.noteName[0]);
+    note.distanceFromPrev = i > 0 ? distance.semitones(musicJson.notes[i - 1].noteName, note.noteName) : null;
+  })
+  console.log(musicJson)
 }
   
 

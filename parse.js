@@ -1,6 +1,8 @@
 const music = require('musicjson');
 const fs = require('fs');
 const distance = require('tonal-distance');
+const Ngram = require('./Models/Ngram');
+const mongoose = require('mongoose');
 const KEYS = {
   '1': {major: 'G', minor: 'E'},
   '2': {major: 'D', minor: 'B'},
@@ -97,38 +99,71 @@ function batchParse(files) {
         }
       })
       // console.log(notes)
-      analyze(musicJson)
+      getIntervals(musicJson)
     })
   })
 }
 
-function analyze(musicJson){
+function getIntervals(musicJson){
   musicJson.notes.forEach((note, i, arr) => {
     // console.log(i)
-    note.relativeNote = distance.interval(musicJson.key, note.noteName[0]);
-    note.distanceFromPrev = i > 0 ? distance.semitones(musicJson.notes[i - 1].noteName, note.noteName) : null;
+    note.relativeNote = distance.interval(`${musicJson.key}4`, note.noteName);
+    note.distanceFromPrev = i > 0 ? distance.semitones(arr[i - 1].noteName, note.noteName) : null;
   })
-  console.log(musicJson)
+  // console.log(musicJson)
+  analyze(musicJson, 4)
 }
-  
 
-// function readFile(){
+// THIS NEEDS TO BE REFACTORED
+function analyze(musicJson, nGramSize) {
+  mongoose.connect('mongodb://localhost/classicalMusic', async (err, res) => {
+    if (err){console.log('DB CONNECTION FAILED: '+err)}
+    else{console.log('DB CONNECTION SUCCESS')}
+    let existingGrams = await Ngram.findOne({artist: 'Bach'})
+    console.log("EXISITING GRAMS: ", existingGrams)
+    let nGramData = {};
+    musicJson.notes.forEach((note, i, arr) => {
+      let target = '';
+      let nextChunk = '';
+      if (i + 8 > arr.length) return;
+      // Get four note chunk
+      for (let x = 0; x < nGramSize; x++) {
+        target += `${arr[i + x].relativeNote}@${arr[i + x].duration}&`
+        nextChunk += `${arr[i + x + nGramSize].relativeNote}@${arr[i + x + nGramSize].duration}&`
+      }
+      // Check if this four note chunk exists in the db
+      // THIS NEEDS TO BE REFACTORED ITS WEIRD WE HAVE BOTH nGramData and existingNGrams
+      if (existingGrams) {
+        if (existingGrams.nGrams[target]) {
+          console.log("FOUND AN EXISTING ONE: ", existingGrams.nGrams[target])
+          if (existingGrams.nGrams[target][nextChunk]) {
+            existingGrams.nGrams[target][nextChunk] += 1 
+          } else existingGrams.nGrams[target][nextChunk] = 1
+        } 
+        else {
+          existingGrams.nGrams[target] = {[nextChunk]: 1};
+        } 
+      } 
+      else if (nGramData[target]) {
+        if (nGramData[target][nextChunk]) {
+          nGramData[target][nextChunk] += 1;
+        } else nGramData[target][nextChunk = 1];
+      } 
+      else nGramData[target] = {[nextChunk]: 1};
+    })
+    // console.log(nGramData);
+    if (!existingGrams) {
+      // await existingGrams.save()
+      Ngram.create({artist: 'Bach', nGrams: nGramData})
+      .then(res => {
+        console.log('success')
+        mongoose.connection.close();
+      })
+    } else {
+      await existingGrams.save()
+      mongoose.connection.close();
+    }
+  })
+ 
+}
 
-//       // console.log(notes)
-//       c = scribble.clip({
-//         notes: notes.map(note => note.note.toLowerCase()).join(' '),
-//         pattern: notes.map(note => DURATIONS[note.duration]).join('')
-//       })
-  
-//       scribble.midi(c, 'bachFull.mid');
-//       json["score-partwise"].part.measure.forEach(function(measure){
-//         console.log(measure.note[0])
-//         console.log(measure.note[1])
-//         console.log(measure.note[2])
-//         console.log('--------NEXT MEASURE----------')
-  
-//         measure.note.forEach(function(note) {
-//           // console.log(note)
-//         })
-//       })
-//     });

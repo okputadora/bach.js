@@ -43,6 +43,8 @@ async function scrapeWiki(){
   })
 }
 
+// MAYBE USE THE SPOTFIY API
+
 async function scrapeAllMusic(){
   let res = await axios.get('https://www.allmusic.com/artist/johann-sebastian-bach-mn0000075140/compositions')
   let $ = cheerio.load(res.data)

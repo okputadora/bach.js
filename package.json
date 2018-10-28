@@ -14,6 +14,7 @@
     "mongoose": "^5.3.6",
     "musicjson": "^0.2.1",
     "scribbletune": "^1.9.0",
-    "tonal": "^2.0.0"
+    "tonal": "^2.0.0",
+    "unzip": "^0.1.11"
   }
 }

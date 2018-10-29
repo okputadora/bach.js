@@ -19,13 +19,7 @@ const KEYS = {
   '-6': {major: 'GFLAT', minor: 'EFLAT'},
 }
 
-const DURATIONS = {
-  '16th': 'x',
-  'eighth': "x-",
-  'quarter': 'x---',
-  'half': 'x-------',
-  'whole': 'x---------------',
-}
+
 mongoose.connect('mongodb://localhost/classicalMusic', async (err, res) => {
   if (err){console.log('DB CONNECTION FAILED: '+err)}
   else{console.log('DB CONNECTION SUCCESS')}

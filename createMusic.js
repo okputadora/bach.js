@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
-const nGram = require('./models/Ngram');
-const scribble = require('scribbletune');
 const distance = require('tonal-distance');
-
+const nGram = require('./models/Ngram');
+let globalCounter = 0;
+// Convert mxl time to tone.js time
 const DURATIONS = {
-  '16th': 'x',
-  'eighth': "x-",
-  'quarter': 'x---',
-  'half': 'x-------',
-  'whole': 'x---------------',
+  '16th': '16n',
+  'eighth': "8n",
+  'quarter': '4n',
+  'half': '2n',
+  'whole': '1n',
 }
 
 const numberOfMeasures = 10;
@@ -19,7 +19,10 @@ mongoose.connect('mongodb://localhost/classicalMusic', async (err, res) => {
   nGram.findOne({artist: "Bach"})
   .then(res => {
     nGrams = res.nGrams;
-    generateSong()
+    for (let i = 0; i < 100; i++){
+      generateSong()
+      globalCounter++
+    }
   })
 })
 
@@ -64,19 +67,21 @@ function getNextChunk(currentChunk, numberOfMeasures, acc) {
 }
 
 function transpose(song){
-  flattened = song.reduce((acc, val) => acc.concat(val), [])
-  transposed = flattened.map(note => {
-    return {note: distance.transpose("C3", note.note), duration: note.duration};
-  })
+  transposed = song
+    .reduce((acc, val) => acc.concat(val), [])
+    .map(note => {
+      return {note: distance.transpose("C3", note.note), duration: note.duration};
+    })
   parseToMusic(transposed)
 }
 
 function parseToMusic(song){
-  let clip = scribble.clip({
-    notes: song.map(note => note.note.toLowerCase()).join(' '),
-    pattern: song.map(note => DURATIONS[note.duration]).join('')
-  })
-  scribble.midi(clip, 'THIRD.mid');
+  var part = new Tone.Part(function(time, value){
+    //the value is an object which contains both the note and the velocity
+    synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
+  }, [{"time" : 0, "note" : "C3", "velocity": 0.9},
+       {"time" : "0:2", "note" : "C4", "velocity": 0.5}
+  ]).start(0);
 }
 
 function parseChunk(chunk) {

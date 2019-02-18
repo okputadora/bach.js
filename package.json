@@ -11,6 +11,8 @@
   "dependencies": {
     "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
+    "midi-writer-js": "^1.7.0",
+    "midiconvert": "^0.4.7",
     "mongoose": "^5.3.6",
     "musicjson": "^0.2.1",
     "tonal": "^2.0.0",

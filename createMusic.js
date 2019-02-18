@@ -1,41 +1,47 @@
-const mongoose = require('mongoose');
-const distance = require('tonal-distance');
-const nGram = require('./models/Ngram');
+const mongoose = require("mongoose");
+const distance = require("tonal-distance");
+const nGram = require("./models/Ngram");
+const fs = require("fs");
+const MidiWriter = require("midi-writer-js");
+
 let globalCounter = 0;
 // Convert mxl time to tone.js time
 const DURATIONS = {
-  '16th': '16n',
-  'eighth': "8n",
-  'quarter': '4n',
-  'half': '2n',
-  'whole': '1n',
-}
+  "32nd": "32",
+  "16th": "16",
+  eighth: "8",
+  quarter: "4",
+  half: "2",
+  whole: "1"
+};
 
 const numberOfMeasures = 10;
 let nGrams = {};
-mongoose.connect('mongodb://localhost/classicalMusic', async (err, res) => {
-  if (err){console.log('DB CONNECTION FAILED: '+err)}
-  else{console.log('DB CONNECTION SUCCESS')}
-  nGram.findOne({artist: "Bach"})
-  .then(res => {
+mongoose.connect("mongodb://localhost/classicalMusic", async (err, res) => {
+  if (err) {
+    console.log("DB CONNECTION FAILED: " + err);
+  } else {
+    console.log("DB CONNECTION SUCCESS");
+  }
+  nGram.findOne({ artist: "Bach" }).then(res => {
     nGrams = res.nGrams;
-    for (let i = 0; i < 100; i++){
-      generateSong()
-      globalCounter++
+    for (let i = 0; i < 100; i++) {
+      generateSong();
+      globalCounter++;
     }
-  })
-})
+  });
+});
 
 function generateSong() {
-  // Pick a random key 
-  // Pick a random first bar 
+  // Pick a random key
+  // Pick a random first bar
   let chunks = Object.keys(nGrams);
-  let chunk = chunks[Math.floor(Math.random()*chunks.length)];
-  let parsedChunk = parseChunk(chunk)
-  console.log(parsedChunk)
-  let song = getNextChunk(chunk, numberOfMeasures, [parsedChunk])
+  let chunk = chunks[Math.floor(Math.random() * chunks.length)];
+  let parsedChunk = parseChunk(chunk);
+  console.log(parsedChunk);
+  let song = getNextChunk(chunk, numberOfMeasures, [parsedChunk]);
   // console.log("Full song: ", song)
-  
+
   // let nextKeys = Object.keys(nextChunk)
   // console.log("Next chunks ", nGrams[chunk])
   // console.log(nextChunk)
@@ -46,50 +52,70 @@ function generateSong() {
 function getNextChunk(currentChunk, numberOfMeasures, acc) {
   let nextChunks = nGrams[currentChunk];
   let highCount = 0;
-  let most = ''
+  let most = "";
   // check for most occurences
   for (key in nextChunks) {
-    if ( nextChunks[key] > highCount ) {
-      highCount = nextChunks[key]
-      most = key
+    if (nextChunks[key] > highCount) {
+      highCount = nextChunks[key];
+      most = key;
     }
   }
-  console.log(highCount)
-  console.log(most)
-
-  acc.push(parseChunk(most))
+  acc.push(parseChunk(most));
   numberOfMeasures--;
   if (numberOfMeasures > 0) {
-    getNextChunk(most, numberOfMeasures, acc)
+    getNextChunk(most, numberOfMeasures, acc);
   } else {
-    transpose(acc)
+    transpose(acc);
   }
 }
 
-function transpose(song){
+function transpose(song) {
   transposed = song
     .reduce((acc, val) => acc.concat(val), [])
     .map(note => {
-      return {note: distance.transpose("C3", note.note), duration: note.duration};
-    })
-  parseToMusic(transposed)
+      if (!DURATIONS[note.duration]) {
+        console.log(note.duration, " undefined");
+      }
+      return {
+        note: distance.transpose("C3", note.note),
+        duration: DURATIONS[note.duration]
+      };
+    });
+  console.log(transposed);
+  parseToMusic(transposed);
 }
 
-function parseToMusic(song){
-  var part = new Tone.Part(function(time, value){
-    //the value is an object which contains both the note and the velocity
-    synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
-  }, [{"time" : 0, "note" : "C3", "velocity": 0.9},
-       {"time" : "0:2", "note" : "C4", "velocity": 0.5}
-  ]).start(0);
+function parseToMusic(song) {
+  // Start with a new track
+  let track = new MidiWriter.Track();
+
+  // Define an instrument (optional):
+  track.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 1 }));
+
+  // Add some notes:
+  transposed.forEach(note => {
+    let midiNote = new MidiWriter.NoteEvent({
+      pitch: [note.note],
+      duration: note.duration
+    });
+    track.addEvent(midiNote);
+    // console.log(note);
+  });
+  // Generate a data URI
+  var file = new MidiWriter.Writer(track).buildFile();
+  fs.writeFile("./test.mid", file, function(err) {
+    if (err) {
+      return console.log(err);
+    }
+
+    console.log("The file was saved!");
+  });
 }
 
 function parseChunk(chunk) {
-  chunkArr = chunk.split('&')
-  return chunkArr
-    .slice(0, chunkArr.length - 1)
-    .map(note => ({
-      note: note.split('@')[0],
-      duration: note.split('@')[1]
-    }))
+  chunkArr = chunk.split("&");
+  return chunkArr.slice(0, chunkArr.length - 1).map(note => ({
+    note: note.split("@")[0],
+    duration: note.split("@")[1]
+  }));
 }

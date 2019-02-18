@@ -15,7 +15,7 @@ const DURATIONS = {
   whole: "1"
 };
 
-const numberOfMeasures = 10;
+const numberOfMeasures = 30;
 let nGrams = {};
 mongoose.connect("mongodb://localhost/classicalMusic", async (err, res) => {
   if (err) {
@@ -23,14 +23,33 @@ mongoose.connect("mongodb://localhost/classicalMusic", async (err, res) => {
   } else {
     console.log("DB CONNECTION SUCCESS");
   }
+  let files = [];
   nGram.findOne({ artist: "Bach" }).then(res => {
     nGrams = res.nGrams;
     for (let i = 0; i < 100; i++) {
-      generateSong();
-      globalCounter++;
+      let song = generateSong();
+      let file = parseToMidi(song);
+      files.push(file);
     }
+    console.log(files);
+    Promise.all(files.map((file, i) => writeFile(file, i))).then(res => {
+      mongoose.connection.close();
+    });
   });
 });
+
+function writeFile(file, i) {
+  return new Promise((resolve, reject) => {
+    fs.writeFile(`./bach/test-${i}.mid`, file, function(err) {
+      if (err) {
+        reject();
+        // return console.log(err);
+      }
+      console.log("The file was saved!");
+      resolve();
+    });
+  });
+}
 
 function generateSong() {
   // Pick a random key
@@ -38,10 +57,8 @@ function generateSong() {
   let chunks = Object.keys(nGrams);
   let chunk = chunks[Math.floor(Math.random() * chunks.length)];
   let parsedChunk = parseChunk(chunk);
-  console.log(parsedChunk);
   let song = getNextChunk(chunk, numberOfMeasures, [parsedChunk]);
-  // console.log("Full song: ", song)
-
+  return song;
   // let nextKeys = Object.keys(nextChunk)
   // console.log("Next chunks ", nGrams[chunk])
   // console.log(nextChunk)
@@ -63,29 +80,28 @@ function getNextChunk(currentChunk, numberOfMeasures, acc) {
   acc.push(parseChunk(most));
   numberOfMeasures--;
   if (numberOfMeasures > 0) {
-    getNextChunk(most, numberOfMeasures, acc);
+    return getNextChunk(most, numberOfMeasures, acc);
   } else {
-    transpose(acc);
+    // console.log(acc);
+    return transpose(acc);
   }
 }
 
 function transpose(song) {
   transposed = song
-    .reduce((acc, val) => acc.concat(val), [])
+    .reduce((acc, val) => acc.concat(val, []))
     .map(note => {
       if (!DURATIONS[note.duration]) {
-        console.log(note.duration, " undefined");
       }
       return {
-        note: distance.transpose("C3", note.note),
+        note: distance.transpose("F#3", note.note),
         duration: DURATIONS[note.duration]
       };
     });
-  console.log(transposed);
-  parseToMusic(transposed);
+  return transposed;
 }
 
-function parseToMusic(song) {
+function parseToMidi(song) {
   // Start with a new track
   let track = new MidiWriter.Track();
 
@@ -93,7 +109,7 @@ function parseToMusic(song) {
   track.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 1 }));
 
   // Add some notes:
-  transposed.forEach(note => {
+  song.forEach(note => {
     let midiNote = new MidiWriter.NoteEvent({
       pitch: [note.note],
       duration: note.duration
@@ -101,15 +117,10 @@ function parseToMusic(song) {
     track.addEvent(midiNote);
     // console.log(note);
   });
+  // console.log(track);
   // Generate a data URI
-  var file = new MidiWriter.Writer(track).buildFile();
-  fs.writeFile("./test.mid", file, function(err) {
-    if (err) {
-      return console.log(err);
-    }
-
-    console.log("The file was saved!");
-  });
+  let file = new MidiWriter.Writer(track).buildFile();
+  return file;
 }
 
 function parseChunk(chunk) {

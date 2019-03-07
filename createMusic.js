@@ -15,7 +15,7 @@ const DURATIONS = {
   whole: "1"
 };
 
-const numberOfMeasures = 30;
+const numberOfMeasures = 300;
 let nGrams = {};
 mongoose.connect("mongodb://localhost/classicalMusic", async (err, res) => {
   if (err) {
@@ -24,9 +24,9 @@ mongoose.connect("mongodb://localhost/classicalMusic", async (err, res) => {
     console.log("DB CONNECTION SUCCESS");
   }
   let files = [];
-  nGram.findOne({ artist: "Bach" }).then(res => {
+  nGram.findOne({ artist: "Chopin" }).then(res => {
     nGrams = res.nGrams;
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 10; i++) {
       let song = generateSong();
       let file = parseToMidi(song);
       files.push(file);
@@ -40,7 +40,7 @@ mongoose.connect("mongodb://localhost/classicalMusic", async (err, res) => {
 
 function writeFile(file, i) {
   return new Promise((resolve, reject) => {
-    fs.writeFile(`./bach/test-${i}.mid`, file, function(err) {
+    fs.writeFile(`./chopin/test-${i}.mid`, file, function(err) {
       if (err) {
         reject();
         // return console.log(err);
@@ -94,7 +94,7 @@ function transpose(song) {
       if (!DURATIONS[note.duration]) {
       }
       return {
-        note: distance.transpose("F#3", note.note),
+        note: note.note,
         duration: DURATIONS[note.duration]
       };
     });

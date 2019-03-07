@@ -15,8 +15,11 @@
     "midiconvert": "^0.4.7",
     "mongoose": "^5.3.6",
     "musicjson": "^0.2.1",
+    "node-unzip-2": "^0.2.7",
     "tonal": "^2.0.0",
     "tone": "^0.12.80",
-    "unzip": "^0.1.11"
+    "unzip": "^0.1.11",
+    "unzip-stream": "^0.3.0",
+    "unzip2": "^0.2.5"
   }
 }
